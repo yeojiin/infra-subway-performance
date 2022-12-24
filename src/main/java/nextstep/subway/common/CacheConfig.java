@@ -17,9 +17,7 @@ import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSeriali
 import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
-import static org.springframework.data.redis.serializer.RedisSerializationContext.SerializationPair.fromSerializer;
 
-@Profile("prod")
 @EnableCaching
 @Configuration
 public class CacheConfig extends CachingConfigurerSupport {
@@ -40,5 +38,21 @@ public class CacheConfig extends CachingConfigurerSupport {
         RedisCacheManager redisCacheManager = RedisCacheManager.RedisCacheManagerBuilder.
                 fromConnectionFactory(connectionFactory).cacheDefaults(redisCacheConfiguration).build();
         return redisCacheManager;
+    }
+
+    /**
+     * LocalTimeDated 역직렬화를 위한 objectMapper 설정
+     * @return
+     */
+    private ObjectMapper objectMapper() {
+        ObjectMapper mapper = new ObjectMapper();
+
+        return mapper.registerModules(new JavaTimeModule())
+                .activateDefaultTypingAsProperty(
+                        mapper.getPolymorphicTypeValidator(),
+                        ObjectMapper.DefaultTyping.NON_FINAL,
+                        "@class")
+                .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+                .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
     }
 }
