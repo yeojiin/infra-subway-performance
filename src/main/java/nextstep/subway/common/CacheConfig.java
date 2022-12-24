@@ -9,6 +9,7 @@ import org.springframework.cache.annotation.CachingConfigurerSupport;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
@@ -18,6 +19,7 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 import static org.springframework.data.redis.serializer.RedisSerializationContext.SerializationPair.fromSerializer;
 
+@Profile("prod")
 @EnableCaching
 @Configuration
 public class CacheConfig extends CachingConfigurerSupport {
@@ -32,28 +34,11 @@ public class CacheConfig extends CachingConfigurerSupport {
     @Bean
     public CacheManager redisCacheManager() {
         RedisCacheConfiguration redisCacheConfiguration = RedisCacheConfiguration.defaultCacheConfig()
-                .serializeKeysWith(fromSerializer(new StringRedisSerializer()))
-                .serializeValuesWith(fromSerializer(new GenericJackson2JsonRedisSerializer(objectMapper())));
+                .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
+                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(new GenericJackson2JsonRedisSerializer()));
 
-        return RedisCacheManager.RedisCacheManagerBuilder
-                .fromConnectionFactory(connectionFactory)
-                .cacheDefaults(redisCacheConfiguration)
-                .build();
-    }
-
-    /**
-     * LocalTimeDated 역직렬화를 위한 objectMapper 설정
-     * @return
-     */
-    private ObjectMapper objectMapper() {
-        ObjectMapper mapper = new ObjectMapper();
-
-        return mapper.registerModules(new JavaTimeModule())
-                .activateDefaultTypingAsProperty(
-                        mapper.getPolymorphicTypeValidator(),
-                        ObjectMapper.DefaultTyping.NON_FINAL,
-                        "@class")
-                .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-                .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        RedisCacheManager redisCacheManager = RedisCacheManager.RedisCacheManagerBuilder.
+                fromConnectionFactory(connectionFactory).cacheDefaults(redisCacheConfiguration).build();
+        return redisCacheManager;
     }
 }
